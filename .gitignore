@@ -1,0 +1,14 @@
+# --- data: M5 files and every slice made from them, never committed (licence: non-commercial, education) ---
+data/
+*.csv
+# --- credentials and host details ---
+.env
+*.key
+id_*
+# --- environment ---
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+# --- results pulled back from the host ---
+results/
