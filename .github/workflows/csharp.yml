@@ -1,0 +1,40 @@
+# Build and test the C# port on every push. SQL Server runs as a service container
+# for the integration tests. Its SA password is made up from the run id, so it
+# differs per run and belongs to a container that lives only as long as the job.
+# The reconciliation test skips here: the M5 slice it reads is never committed.
+name: csharp
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      MSSQL_PASSWORD: Ci-${{ github.run_id }}-${{ github.run_attempt }}-Aa1!
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: Ci-${{ github.run_id }}-${{ github.run_attempt }}-Aa1!
+          MSSQL_PID: Developer
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+          --health-start-period 20s
+    defaults:
+      run:
+        working-directory: csharp
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+      - run: dotnet build
+      - run: dotnet test --no-build
