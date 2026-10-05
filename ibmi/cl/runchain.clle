@@ -1,0 +1,37 @@
+/* RUNCHAIN: the batch job. Load the data slice, then write the fallback forecast  */
+/* and the suggested rows. LIB is the project library and DIR the IFS directory    */
+/* with the slice's CSVs. The origins are the test year, every day, the same       */
+/* origins the model's rows in FORECAST use. MODEL is the method SUGGESTED prefers.*/
+/* A failed step stops the chain with an escape message naming the step.          */
+/* Compile: CRTBNDCL PGM(<lib>/RUNCHAIN) SRCSTMF('.../runchain.clle')              */
+/* Call:    CALL PGM(<lib>/RUNCHAIN) PARM('<lib>' '<dir, 128 bytes>')             */
+
+PGM        PARM(&LIB &DIR)
+  DCL        VAR(&LIB) TYPE(*CHAR) LEN(10)
+  DCL        VAR(&DIR) TYPE(*CHAR) LEN(128)
+  DCL        VAR(&FROM) TYPE(*CHAR) LEN(10) VALUE('2015-05-24')
+  DCL        VAR(&TO) TYPE(*CHAR) LEN(10) VALUE('2016-05-15')
+  DCL        VAR(&MODEL) TYPE(*CHAR) LEN(40) VALUE('xgboost_rel@item_id')
+  DCL        VAR(&STEP) TYPE(*CHAR) LEN(10)
+
+  MONMSG     MSGID(CPF0000 CEE0000 RNX0000 SQL0000) EXEC(GOTO CMDLBL(FAILED))
+
+  /* FCSTNAIVE finds its tables through the library list. */
+  CHGVAR     VAR(&STEP) VALUE('ADDLIBLE')
+  ADDLIBLE   LIB(&LIB) POSITION(*FIRST)
+  MONMSG     MSGID(CPF2103)   /* already on the list */
+
+  CHGVAR     VAR(&STEP) VALUE('LOADSLICE')
+  CALL       PGM(&LIB/LOADSLICE) PARM(&LIB &DIR)
+
+  CHGVAR     VAR(&STEP) VALUE('FCSTNAIVE')
+  CALL       PGM(&LIB/FCSTNAIVE) PARM(&FROM &TO &MODEL)
+
+  SNDPGMMSG  MSGID(CPF9898) MSGF(QCPFMSG) MSGDTA('RUNCHAIN completed') +
+               MSGTYPE(*COMP)
+  RETURN
+
+FAILED:
+  SNDPGMMSG  MSGID(CPF9898) MSGF(QCPFMSG) +
+               MSGDTA('RUNCHAIN failed at step' *BCAT &STEP) MSGTYPE(*ESCAPE)
+ENDPGM
