@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="ForecastHost.Api/ForecastHost.Api.csproj" />
   <Project Path="ForecastHost.Tests/ForecastHost.Tests.csproj" />
   <Project Path="ForecastHost/ForecastHost.csproj" />
 </Solution>
