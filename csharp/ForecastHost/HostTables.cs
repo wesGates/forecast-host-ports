@@ -142,6 +142,24 @@ public sealed class HostTables(SqlConnection connection)
         BulkInsert("host.forecast", table, tx);
     }
 
+    // Replace every sales row.
+    public void ReplaceSales(IEnumerable<Sale> rows, SqlTransaction tx)
+    {
+        using (var cmd = new SqlCommand("DELETE FROM host.sales", connection, tx))
+            cmd.ExecuteNonQuery();
+
+        var table = new DataTable();
+        foreach (var (name, type) in new[]
+        {
+            ("id", typeof(string)), ("item_id", typeof(string)), ("store_id", typeof(string)),
+            ("date", typeof(DateTime)), ("units", typeof(int)),
+        })
+            table.Columns.Add(name, type);
+        foreach (var r in rows)
+            table.Rows.Add(r.Id, r.ItemId, r.StoreId, Day(r.Date), r.Units);
+        BulkInsert("host.sales", table, tx);
+    }
+
     // Replace the suggested rows for the origin range.
     public void ReplaceSuggested(
         DateOnly first, DateOnly last, IEnumerable<SuggestedRow> rows, SqlTransaction tx)
