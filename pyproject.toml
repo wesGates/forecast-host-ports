@@ -14,3 +14,7 @@ split-on-trailing-comma = false
 # B: likely bugs. NPY/PD: numpy and pandas gotchas.
 select = ["E", "F", "I", "UP", "B", "NPY", "PD"]
 ignore = ["E501"]  # line length is the formatter's job
+
+[tool.pytest.ini_options]
+# tests import the reference from tools/reference.py
+pythonpath = ["tools"]

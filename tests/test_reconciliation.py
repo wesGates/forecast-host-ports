@@ -1,8 +1,9 @@
 """Reconcile the host's results with a Python reference computed from the same slice.
 
 Reads the slice from data/ (tools/export_slice.py) and the rows pulled back from the
-host from results/ (tools/deploy.sh). Skips when either is missing. Mismatches are
-reported row by row; none are tolerated beyond decimal rounding.
+host from results/ (tools/deploy.sh), and compares them with tools/reference.py.
+Skips when either is missing. Mismatches are reported row by row; none are tolerated
+beyond decimal rounding.
 """
 
 from pathlib import Path
@@ -10,38 +11,16 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+from reference import HORIZON, KEY, reference, seasonal_naive
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 RESULTS = ROOT / "results"
 
-# The origins and the preferred model, as set in ibmi/cl/runchain.clle.
-FIRST_ORIGIN = pd.Timestamp("2015-05-24")
-LAST_ORIGIN = pd.Timestamp("2016-05-15")
+# The preferred model, as set in ibmi/cl/runchain.clle.
 MODEL = "xgboost_rel@item_id"
 FALLBACK = "SEASONAL_NAIVE"
-SEASON = HORIZON = 7
 TOLERANCE = 1e-6
-
-KEY = ["as_of", "id", "target_date"]
-
-
-def seasonal_naive(y: np.ndarray, season: int = SEASON, horizon: int = HORIZON):
-    """The study's bench_seasonal_naive: y holds sales up to and including the origin."""
-    idx = [-season + ((h - 1) % season) for h in range(1, horizon + 1)]
-    return y[idx]
-
-
-def reference(sales: pd.DataFrame) -> pd.DataFrame:
-    """Seasonal naive rows for every series and origin, computed from the sales."""
-    rows = []
-    for sid, s in sales.sort_values("date").groupby("id"):
-        dates, units = s.date.to_numpy(), s.units.to_numpy()
-        for t in np.flatnonzero((dates >= FIRST_ORIGIN) & (dates <= LAST_ORIGIN)):
-            as_of = pd.Timestamp(dates[t])
-            for h, f in enumerate(seasonal_naive(units[: t + 1]), start=1):
-                rows.append((as_of, sid, as_of + pd.Timedelta(days=h), h, float(f)))
-    return pd.DataFrame(rows, columns=[*KEY, "horizon", "forecast"])
 
 
 def read_host_csv(path: Path) -> pd.DataFrame:

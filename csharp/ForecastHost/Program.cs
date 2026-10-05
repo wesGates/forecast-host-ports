@@ -14,8 +14,6 @@ using System.Globalization;
 using ForecastHost;
 using Microsoft.Data.SqlClient;
 
-const string CodeDigest = "ForecastHost 1.0";
-
 var first = new DateOnly(2015, 5, 24);
 var last = new DateOnly(2016, 5, 15);
 var model = "xgboost_rel@item_id";
@@ -33,27 +31,12 @@ for (var i = 0; i < args.Length; i += 2)
 
 using var connection = new SqlConnection(HostTables.ConnectionString());
 connection.Open();
-var tables = new HostTables(connection);
-tables.EnsureTables();
+var result = Chain.Run(connection, first, last, model);
 
-var madeAt = DateTime.UtcNow;
-madeAt = madeAt.AddTicks(-(madeAt.Ticks % TimeSpan.TicksPerSecond));   // DATETIME2(0)
-var fallback = tables.ReadSales()
-    .SelectMany(sales => Rule.SeasonalNaive(sales, first, last, CodeDigest, madeAt))
-    .ToList();
-var suggested = Rule.Suggest(fallback, tables.ReadForecasts(model, first, last));
-
-using (var tx = connection.BeginTransaction())
-{
-    tables.ReplaceForecasts(Rule.Fallback, first, last, fallback, tx);
-    tables.ReplaceSuggested(first, last, suggested, tx);
-    tx.Commit();
-}
-
-var fromModel = suggested.Count(r => r.Source == model);
 Console.WriteLine($"origins {first:yyyy-MM-dd} to {last:yyyy-MM-dd}: " +
-    $"{fallback.Count} {Rule.Fallback} rows, {suggested.Count} suggested rows " +
-    $"({fromModel} from {model}, {suggested.Count - fromModel} from {Rule.Fallback})");
+    $"{result.FallbackRows} {Rule.Fallback} rows, {result.SuggestedRows} suggested rows " +
+    $"({result.FromModel} from {model}, " +
+    $"{result.SuggestedRows - result.FromModel} from {Rule.Fallback})");
 return 0;
 
 static DateOnly ParseDate(string s) =>

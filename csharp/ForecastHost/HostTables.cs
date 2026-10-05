@@ -9,8 +9,9 @@ public sealed class HostTables(SqlConnection connection)
 {
     // The connection from the environment, with the defaults of the study's compose
     // file: MSSQL_HOST (localhost), MSSQL_PORT (1433), MSSQL_USER (sa),
-    // MSSQL_PASSWORD (required), MSSQL_DATABASE (forecasting).
-    public static string ConnectionString()
+    // MSSQL_PASSWORD (required), MSSQL_DATABASE (forecasting). database overrides
+    // MSSQL_DATABASE; the integration tests use their own database.
+    public static string ConnectionString(string? database = null)
     {
         var password = Environment.GetEnvironmentVariable("MSSQL_PASSWORD");
         if (string.IsNullOrEmpty(password))
@@ -20,7 +21,8 @@ public sealed class HostTables(SqlConnection connection)
         return new SqlConnectionStringBuilder
         {
             DataSource = $"{host},{port}",
-            InitialCatalog = Environment.GetEnvironmentVariable("MSSQL_DATABASE") ?? "forecasting",
+            InitialCatalog = database
+                ?? Environment.GetEnvironmentVariable("MSSQL_DATABASE") ?? "forecasting",
             UserID = Environment.GetEnvironmentVariable("MSSQL_USER") ?? "sa",
             Password = password,
             TrustServerCertificate = true,   // the local container has a self-signed certificate

@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="ForecastHost.Tests/ForecastHost.Tests.csproj" />
   <Project Path="ForecastHost/ForecastHost.csproj" />
 </Solution>
