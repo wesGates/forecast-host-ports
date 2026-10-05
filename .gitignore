@@ -12,3 +12,6 @@ __pycache__/
 .ruff_cache/
 # --- results pulled back from the host ---
 results/
+# --- .NET build output ---
+bin/
+obj/
