@@ -1,0 +1,6 @@
+# Python 3.14 on Linux. Same pins as the forecasting study.
+pandas==3.0.5
+
+# development only - linting and tests
+ruff==0.16.7
+pytest==9.1.1

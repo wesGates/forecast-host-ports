@@ -1,0 +1,52 @@
+/* LOADSLICE: replace the data slice in LIB with the CSVs in the IFS directory DIR.  */
+/* DIR holds one file per table, named like the table (STORE.csv ... SALES.csv),     */
+/* written by tools/export_slice.py. Children are emptied first and parents loaded   */
+/* first, so the foreign keys hold. FORECAST and SUGGESTED are not touched.          */
+/* Any failure ends the program with an escape message naming the table. The tables  */
+/* are emptied before loading, so a failed run leaves them partly loaded; rerun it.  */
+/* DIR is 128 bytes: from a command line, pad the literal to that length.           */
+/* Compile: CRTBNDCL PGM(<lib>/LOADSLICE) SRCSTMF('.../loadslice.clle')              */
+/* Call:    CALL PGM(<lib>/LOADSLICE) PARM('<lib>' '<dir>')                         */
+
+PGM        PARM(&LIB &DIR)
+  DCL        VAR(&LIB) TYPE(*CHAR) LEN(10)
+  DCL        VAR(&DIR) TYPE(*CHAR) LEN(128)
+
+  /* Tables in load order, ten characters each. */
+  DCL        VAR(&TABLES) TYPE(*CHAR) LEN(90) +
+               VALUE('STORE     DEPT      ITEM      SERIES    +
+                      CALENDAR  EVENT     CAL_EVENT SNAP_DAY  +
+                      SALES     ')
+  DCL        VAR(&NTAB) TYPE(*INT) VALUE(9)
+  DCL        VAR(&I) TYPE(*INT)
+  DCL        VAR(&POS) TYPE(*INT)
+  DCL        VAR(&TBL) TYPE(*CHAR) LEN(10)
+  DCL        VAR(&STMF) TYPE(*CHAR) LEN(256)
+  DCL        VAR(&SQL) TYPE(*CHAR) LEN(256)
+
+  MONMSG     MSGID(CPF0000 SQL0000) EXEC(GOTO CMDLBL(FAILED))
+
+  /* Empty the tables, children first. */
+  DOFOR      VAR(&I) FROM(&NTAB) TO(1) BY(-1)
+    CHGVAR     VAR(&POS) VALUE((&I - 1) * 10 + 1)
+    CHGVAR     VAR(&TBL) VALUE(%SST(&TABLES &POS 10))
+    CHGVAR     VAR(&SQL) VALUE('DELETE FROM ' *CAT &LIB *TCAT '.' *TCAT &TBL)
+    RUNSQL     SQL(&SQL) COMMIT(*NONE) NAMING(*SQL)
+  ENDDO
+
+  /* Load the CSVs, parents first. */
+  DOFOR      VAR(&I) FROM(1) TO(&NTAB)
+    CHGVAR     VAR(&POS) VALUE((&I - 1) * 10 + 1)
+    CHGVAR     VAR(&TBL) VALUE(%SST(&TABLES &POS 10))
+    CHGVAR     VAR(&STMF) VALUE(&DIR *TCAT '/' *TCAT &TBL *TCAT '.csv')
+    CPYFRMIMPF FROMSTMF(&STMF) TOFILE(&LIB/&TBL) MBROPT(*ADD) +
+                 RCDDLM(*ALL) DTAFMT(*DLM) STRDLM(*DBLQUOTE) FLDDLM(',') +
+                 DATFMT(*ISO) RMVCOLNAM(*YES) ERRLVL(*NOMAX)
+  ENDDO
+
+  RETURN
+
+FAILED:
+  SNDPGMMSG  MSGID(CPF9898) MSGF(QCPFMSG) +
+               MSGDTA('LOADSLICE failed at table' *BCAT &TBL) MSGTYPE(*ESCAPE)
+ENDPGM

@@ -1,0 +1,16 @@
+[tool.ruff]
+line-length = 90
+target-version = "py314"
+
+[tool.ruff.format]
+# Keep short grouped lists (column names) on one line.
+skip-magic-trailing-comma = true
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false
+
+[tool.ruff.lint]
+# E/F: pycodestyle + pyflakes. I: import order. UP: modern syntax.
+# B: likely bugs. NPY/PD: numpy and pandas gotchas.
+select = ["E", "F", "I", "UP", "B", "NPY", "PD"]
+ignore = ["E501"]  # line length is the formatter's job
