@@ -9,6 +9,9 @@ CL program runs the load and the RPG program as one job. A deploy script does
 everything over SSH, and a Python test proves the RPG results equal a plain
 Python reference row for row.
 
+The same tables and rule are also ported to C# on SQL Server, with tests, CI,
+a container and a read-only JSON API. See [`csharp/README.md`](csharp/README.md).
+
 The forecasts and the baseline come from a separate study,
 [demand-forecasting](https://github.com/wesGates/demand-forecasting). It
 trained gradient-boosted trees, ETS and ARIMA on the public M5 dataset of
@@ -36,7 +39,9 @@ study's own definition of the baseline.
 | `ibmi/cl/runchain.clle` | `RUNCHAIN`: the batch job, `LOADSLICE` then `FCSTNAIVE`, stopping at the first failed step |
 | `tools/export_slice.py` | writes the slice from the raw M5 files as one CSV per table |
 | `tools/deploy.sh` | export, upload, compile, run, pull the results back |
-| `tests/test_reconciliation.py` | the host's rows against a Python reference |
+| `tools/reference.py` | the Python reference: "this day last week" from the same slice |
+| `tests/test_reconciliation.py` | the host's rows against the Python reference |
+| `csharp/` | the C# port on SQL Server and its API |
 
 ## The rule
 
